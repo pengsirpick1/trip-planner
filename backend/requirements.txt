@@ -1,6 +1,6 @@
-# HelloAgents框架
+# Agent Harness dependencies
+# hello-agents is retained only for the disabled legacy compatibility path.
 hello-agents[protocols]>=0.2.4,<=0.2.9
-
 # FastAPI和相关依赖
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0

@@ -3,7 +3,7 @@
     <a-layout style="min-height: 100vh">
       <a-layout-header style="background: #001529; padding: 0 50px">
         <div class="header-row">
-          <div style="color: white; font-size: 24px; font-weight: bold">🌍 HelloAgents智能旅行助手</div>
+          <div style="color: white; font-size: 24px; font-weight: bold">🌍 智能旅行规划 Agent 图编排系统</div>
           <a-space>
             <span v-if="user" class="user-name">{{ user.username }}</span>
             <a-button v-if="user" size="small" @click="openKeys">模型 Key</a-button>
@@ -34,7 +34,7 @@
         <a-list size="small" :data-source="credentials" style="margin-top: 16px"><template #renderItem="{ item }"><a-list-item><a-space>{{ item.provider }}<a-tag v-if="item.is_active" color="green">当前使用</a-tag></a-space><template #actions><a-button size="small" :disabled="item.is_active" @click="activateKey(item.provider)">设为当前</a-button><a-button size="small" @click="verifyKey(item.provider)">验证</a-button><a-button danger size="small" @click="removeKey(item.provider)">删除</a-button></template></a-list-item></template></a-list>
       </a-modal>
       <a-layout-footer style="text-align: center">
-        HelloAgents智能旅行助手 ©2025 基于HelloAgents框架
+        智能旅行规划 Agent 图编排系统
       </a-layout-footer>
     </a-layout>
   </div>
@@ -67,4 +67,5 @@ async function verifyKey(provider: SupportedProvider) { try { await verifyProvid
 .header-row { height: 64px; display: flex; align-items: center; justify-content: space-between; }
 .user-name { color: rgba(255,255,255,.85); }
 </style>
+
 

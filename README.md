@@ -1,212 +1,155 @@
-# HelloAgents智能旅行助手 🌍✈️
+# 智能旅行规划 Agent Harness 与图编排系统
 
-基于HelloAgents框架构建的智能旅行规划助手,集成高德地图MCP服务,提供个性化的旅行计划生成。
+面向多轮旅行规划场景的 Agent 应用。项目不依赖 LangGraph 或 HelloAgents 作为生产运行时：LLM 负责理解需求和生成结构化任务草案，业务代码负责图校验、依赖调度、状态持久化、工具调用和局部重规划。
 
-## ✨ 功能特点
+## 核心设计
 
-- 🤖 **AI驱动的旅行规划**: 基于HelloAgents框架的SimpleAgent,智能生成详细的多日旅程
-- 🗺️ **高德地图集成**: 通过MCP协议接入高德地图服务,支持景点搜索、路线规划、天气查询
-- 🧠 **智能工具调用**: Agent自动调用高德地图MCP工具,获取实时POI、路线和天气信息
-- 🎨 **现代化前端**: Vue3 + TypeScript + Vite,响应式设计,流畅的用户体验
-- 📱 **完整功能**: 包含住宿、交通、餐饮和景点游览时间推荐
-
-## 🏗️ 技术栈
-
-### 后端
-- **框架**: HelloAgents (基于SimpleAgent)
-- **API**: FastAPI
-- **MCP工具**: amap-mcp-server (高德地图)
-- **LLM**: 支持多种LLM提供商(OpenAI, DeepSeek等)
-
-### 前端
-- **框架**: Vue 3 + TypeScript
-- **构建工具**: Vite
-- **UI组件库**: Ant Design Vue
-- **地图服务**: 高德地图 JavaScript API
-- **HTTP客户端**: Axios
-
-## 📁 项目结构
-
+```text
+用户请求 / 历史偏好
+        │
+        ▼
+意图解析与复杂度路由
+        │
+        ▼
+结构化任务草案 ──► 任务图编译与校验
+                         │
+                         ▼
+               DAG Runtime（就绪节点调度）
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+  ReAct 研究节点    本地工具调用      MCP 工具调用
+        │                │                │
+        └────────────────▼────────────────┘
+                         │
+                         ▼
+     共享执行状态 / Checkpoint / 局部重规划
+                         │
+                         ▼
+                 行程合成、评估与 SSE 事件
 ```
-helloagents-trip-planner/
-├── backend/                    # 后端服务
+
+### Agent Harness 职责
+
+- **任务控制**：将 LLM 生成的任务草案编译为受控 DAG，校验依赖、环路、能力约束和终止条件。
+- **图运行时与共享黑板**：统一维护任务图、节点状态、结构化结果、局部上下文及图版本；只调度依赖已满足的节点。
+- **有界并发执行**：通过单机进程内的通用执行池，按任务能力匹配并轮询分配多个会话的就绪任务。
+- **上下文与工具运行时**：节点仅获取本任务所需的用户约束和上游结构化证据；ReAct 节点可在步骤预算内决定工具及参数，统一接入本地工具和 MCP 工具。
+- **可靠性**：节点边界保存 Checkpoint；版本 CAS 检测并发快照覆盖；任务失败或用户修改时，仅失效受影响节点及其下游，复用其余成功结果。
+- **多用户与可观测性**：Bearer 认证、用户级会话与偏好记忆、LLM 调用遥测、配额账本、SSE 运行事件及前端执行轨迹展示。
+
+## 技术栈
+
+- **后端**：Python、FastAPI、asyncio、SQLAlchemy Async、Alembic、MySQL、Redis
+- **Agent Runtime**：自定义 TaskGraph / DAG Runtime、共享黑板、ReAct、MCP、OpenAI-compatible LLM API
+- **前端**：Vue 3、TypeScript、Vite、Ant Design Vue、高德地图 JavaScript API、SSE
+- **基础设施**：Docker Compose（MySQL 8、Redis 7）
+
+## 项目结构
+
+```text
+trip-planner/
+├── backend/
 │   ├── app/
-│   │   ├── agents/            # Agent实现
-│   │   │   └── trip_planner_agent.py
-│   │   ├── api/               # FastAPI路由
-│   │   │   ├── main.py
-│   │   │   └── routes/
-│   │   │       ├── trip.py
-│   │   │       └── map.py
-│   │   ├── services/          # 服务层
-│   │   │   ├── amap_service.py
-│   │   │   └── llm_service.py
-│   │   ├── models/            # 数据模型
-│   │   │   └── schemas.py
-│   │   └── config.py          # 配置管理
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── .gitignore
-├── frontend/                   # 前端应用
-│   ├── src/
-│   │   ├── components/        # Vue组件
-│   │   ├── services/          # API服务
-│   │   ├── types/             # TypeScript类型
-│   │   └── views/             # 页面视图
-│   ├── package.json
-│   └── vite.config.ts
-└── README.md
+│   │   ├── application/    # 意图、路由、规划、局部重规划与应用服务
+│   │   ├── runtime/        # DAG 调度、Checkpoint、恢复与执行池
+│   │   ├── executors/      # ReAct、预算与证据交接执行器
+│   │   ├── tools/          # 本地工具、MCP 客户端、工具池与错误诊断
+│   │   ├── persistence/    # MySQL / SQLite 仓储与 SQLAlchemy 模型
+│   │   ├── telemetry/      # LLM 调用与尝试级用量记录
+│   │   ├── quota/          # 额度预占、结算、对账与幂等账本
+│   │   └── api/            # FastAPI、认证、Run、SSE、凭证接口
+│   ├── migrations/         # Alembic migrations
+│   ├── benchmarks/         # 可复现离线工程基准
+│   └── tests/
+├── frontend/
+│   └── src/                # 规划表单、结果地图、Agent 轨迹与认证界面
+├── docs/
+└── docker-compose.yml
 ```
 
-## 🚀 快速开始
+## 快速开始
 
-### 前提条件
+### 1. 启动 MySQL 与 Redis
 
-- Python 3.10+
-- Node.js 16+
-- 高德地图API密钥 (Web服务API和Web端(JS API))
-- LLM API密钥 (OpenAI/DeepSeek等)
+```bash
+docker compose up -d mysql redis
+```
 
-### 后端安装
+### 2. 配置并启动后端
 
-1. 进入后端目录
 ```bash
 cd backend
+copy .env.example .env          # PowerShell 也可使用 Copy-Item
 ```
 
-2. 创建虚拟环境
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+在 `backend/.env` 中至少配置：
+
+```dotenv
+LLM_API_KEY=your_provider_key
+LLM_BASE_URL=https://your-provider.example/v1
+LLM_MODEL=your-model-name
+AMAP_API_KEY=your_amap_server_key
+DATABASE_URL=mysql+asyncmy://trip_planner:trip_planner_dev@127.0.0.1:3307/trip_planner
+AUTH_SECRET_KEY=replace-with-a-random-32-plus-character-secret
 ```
 
-3. 安装依赖
+随后安装依赖、执行迁移并启动：
+
 ```bash
 pip install -r requirements.txt
-```
-
-4. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件,填入你的API密钥
-```
-
-5. 启动后端服务
-```bash
-# Windows + MCP stdio：不要加 --reload；它会使用不支持子进程的 SelectorEventLoop
+alembic upgrade head
 python run.py
 ```
 
-### 前端安装
+后端文档：<http://localhost:8000/docs>
 
-1. 进入前端目录
-```bash
-cd frontend
-```
+### 3. 配置并启动前端
 
-2. 安装依赖
 ```bash
+cd ../frontend
+copy .env.example .env
 npm install
-```
-
-3. 配置环境变量
-```bash
-# 创建.env文件, 填入高德地图Web API Key 和 Web端JS API Key
-cp .env.example .env
-```
-
-4. 启动开发服务器
-```bash
 npm run dev
 ```
 
-5. 打开浏览器访问 `http://localhost:5173`
+访问 <http://localhost:5173>。
 
-## 📝 使用指南
+> Windows 下使用 MCP stdio 时，请不要开启 Uvicorn `--reload`；该项目的 `python run.py` 已处理对应事件循环差异。
 
-1. 在首页填写旅行信息:
-   - 目的地城市
-   - 旅行日期和天数
-   - 交通方式偏好
-   - 住宿偏好
-   - 旅行风格标签
+## 验证与基准
 
-2. 点击"生成旅行计划"按钮
+离线回归：
 
-3. 系统将:
-   - 调用HelloAgents Agent生成初步计划
-   - Agent自动调用高德地图MCP工具搜索景点
-   - Agent获取天气信息和路线规划
-   - 整合所有信息生成完整行程
-
-4. 查看结果:
-   - 每日详细行程
-   - 景点信息与地图标记
-   - 交通路线规划
-   - 天气预报
-   - 餐饮推荐
-
-## 🔧 核心实现
-
-### HelloAgents Agent集成
-
-```python
-from hello_agents import SimpleAgent, HelloAgentsLLM
-from hello_agents.tools import MCPTool
-
-# 创建高德地图MCP工具
-amap_tool = MCPTool(
-    name="amap",
-    server_command=["uvx", "amap-mcp-server"],
-    env={"AMAP_MAPS_API_KEY": "your_api_key"},
-    auto_expand=True
-)
-
-# 创建旅行规划Agent
-agent = SimpleAgent(
-    name="旅行规划助手",
-    llm=HelloAgentsLLM(),
-    system_prompt="你是一个专业的旅行规划助手..."
-)
-
-# 添加工具
-agent.add_tool(amap_tool)
+```bash
+cd backend
+python -m pytest --basetemp="$env:TEMP\trip_planner_pytest"
 ```
 
-### MCP工具调用
+项目提供的基准明确区分受控离线指标与真实外部调用：
 
-Agent可以自动调用以下高德地图MCP工具:
-- `maps_text_search`: 搜索景点POI
-- `maps_weather`: 查询天气
-- `maps_direction_walking_by_address`: 步行路线规划
-- `maps_direction_driving_by_address`: 驾车路线规划
-- `maps_direction_transit_integrated_by_address`: 公共交通路线规划
+- 在 20 组固定需求变更的离线回放中，局部重规划相对全图重跑减少 **65.8%** 的节点重执行量，以及 **79.0%** 的模拟工具调用量。
+- 该指标验证依赖失效范围、结果复用和图有效性；不将离线模拟结果表述为真实 LLM Token、线上 API 成本或模型质量。
 
-## 📄 API文档
+## 兼容路径说明
 
-启动后端服务后,访问 `http://localhost:8000/docs` 查看完整的API文档。
+`backend/app/agents/trip_planner_agent.py` 保留了早期 HelloAgents 固定多 Agent 原型，仅供兼容与迁移对照。它默认不会被生产链路加载；只有显式设置 `ENABLE_LEGACY_PLANNER=true` 时，旧的 `/api/trip/plan` 兼容分支才会启用。
 
-主要端点:
-- `POST /api/trip/plan` - 生成旅行计划
-- `GET /api/map/poi` - 搜索POI
-- `GET /api/map/weather` - 查询天气
-- `POST /api/map/route` - 规划路线
+当前默认生产路径是：
 
-## 🤝 贡献指南
+```text
+/api/travel/runs
+→ TravelApplicationService
+→ 结构化规划与图编译
+→ GraphRuntime
+→ ReAct / 本地与 MCP 工具
+→ Checkpoint、评估、局部重规划与 SSE
+```
 
-欢迎提交Pull Request或Issue!
+## 安全说明
 
-## 📜 开源协议
+不要提交 `.env`、真实 API Key、数据库文件或本地运行产物。仓库只保留 `.env.example` 作为配置模板；用户自带模型 Key 时，服务端使用 AES-256-GCM 加密保存，列表接口不会返回明文。
+
+## 许可证
 
 CC BY-NC-SA 4.0
-
-## 🙏 致谢
-
-- [HelloAgents](https://github.com/datawhalechina/Hello-Agents) - 智能体教程
-- [HelloAgents框架](https://github.com/jjyaoao/HelloAgents) - 智能体框架
-- [高德地图开放平台](https://lbs.amap.com/) - 地图服务
-- [amap-mcp-server](https://github.com/sugarforever/amap-mcp-server) - 高德地图MCP服务器
-
----
-
-**HelloAgents智能旅行助手** - 让旅行计划变得简单而智能 🌈
