@@ -1,0 +1,22 @@
+[
+  {"case_id":"hotel_budget_01","message":"酒店预算调整", "change":"hotel_budget_change", "expected_domain":"hotel"},
+  {"case_id":"hotel_budget_02","message":"住宿预算调整", "change":"accommodation_budget_change", "expected_domain":"hotel"},
+  {"case_id":"hotel_area_01","message":"酒店区域更换", "change":"hotel_area_change", "expected_domain":"hotel"},
+  {"case_id":"hotel_area_02","message":"住宿位置调整", "change":"accommodation_area_change", "expected_domain":"hotel"},
+  {"case_id":"hotel_rating_01","message":"酒店评分要求提高", "change":"hotel_rating_change", "expected_domain":"hotel"},
+  {"case_id":"hotel_rating_02","message":"民宿评分要求调整", "change":"lodging_rating_change", "expected_domain":"hotel"},
+  {"case_id":"attraction_preference_01","message":"景点偏好调整", "change":"attraction_preference_change", "expected_domain":"attractions"},
+  {"case_id":"attraction_preference_02","message":"博物馆偏好调整", "change":"museum_preference_change", "expected_domain":"attractions"},
+  {"case_id":"add_poi_01","message":"还想去一个地方", "change":"add_must_have_poi", "expected_domain":"attractions"},
+  {"case_id":"add_poi_02","message":"想去新的景点", "change":"add_requested_poi", "expected_domain":"attractions"},
+  {"case_id":"remove_poi_01","message":"不要去原来的景点", "change":"remove_poi", "expected_domain":"attractions"},
+  {"case_id":"remove_poi_02","message":"替换游玩地点", "change":"replace_poi", "expected_domain":"attractions"},
+  {"case_id":"transport_01","message":"交通偏好调整", "change":"transport_preference_change", "expected_domain":"transport"},
+  {"case_id":"transport_02","message":"路线距离需要调整", "change":"route_distance_change", "expected_domain":"transport"},
+  {"case_id":"transport_03","message":"自驾安排调整", "change":"driving_preference_change", "expected_domain":"transport"},
+  {"case_id":"departure_01","message":"出发时间调整", "change":"departure_time_change", "expected_domain":"synthesis"},
+  {"case_id":"departure_02","message":"每天开始时间更换", "change":"daily_start_time_change", "expected_domain":"synthesis"},
+  {"case_id":"duration_01","message":"旅行天数调整", "change":"trip_duration_change", "expected_domain":"synthesis"},
+  {"case_id":"remove_requirement_01","message":"删除之前的要求", "change":"remove_requirement", "expected_domain":"synthesis"},
+  {"case_id":"remove_requirement_02","message":"不再需要之前的偏好", "change":"remove_previous_preference", "expected_domain":"synthesis"}
+]

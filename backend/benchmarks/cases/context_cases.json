@@ -1,0 +1,5 @@
+[
+  {"case_id":"small", "payload_chars":2048},
+  {"case_id":"medium", "payload_chars":10240},
+  {"case_id":"large", "payload_chars":30720}
+]

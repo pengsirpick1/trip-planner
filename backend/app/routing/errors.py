@@ -1,0 +1,2 @@
+class RoutingProhibitedError(ValueError):
+    pass

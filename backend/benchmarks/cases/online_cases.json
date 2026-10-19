@@ -1,0 +1,7 @@
+[
+  {"case_id":"simple_city_plan", "message":"请规划一份三天旅行计划"},
+  {"case_id":"multi_constraint_plan", "message":"请生成一份带预算与住宿偏好的旅行计划"},
+  {"case_id":"clarification", "message":"帮我安排一次旅行"},
+  {"case_id":"direct_question", "message":"旅游前需要准备什么"},
+  {"case_id":"complex_plan", "message":"请生成一份多约束旅行规划"}
+]

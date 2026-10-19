@@ -1,0 +1,5 @@
+# 后端开发/测试依赖（默认测试必须全离线）
+pytest>=8.0
+pytest-asyncio>=0.24
+# 注：hello-agents 仅 legacy 路径（ENABLE_LEGACY_PLANNER=true）需要，未列为默认依赖；
+#     新链路（/api/travel/*）不依赖它，见 backend/requirements.txt 中原生产依赖清单。
